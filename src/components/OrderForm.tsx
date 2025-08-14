@@ -34,7 +34,7 @@ type OrderRow = {
 
 const currency = (n: number) => `R ${n.toFixed(2)}`;
 
-export default function OrderForm() {
+export function OrderForm() {
   const { currentRep } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
