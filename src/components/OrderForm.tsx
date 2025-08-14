@@ -1,7 +1,7 @@
 // src/components/OrderForm.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Minus, Trash2, Download, Mail } from 'lucide-react';
-import { supabase } from '../services/database';
+import { supabase } from '../services/supabase';
 import { PDFService } from './PDF';
 import { createOrderWithItems } from '../services/order';
 import { useAuth } from '../contexts/AuthContext';
