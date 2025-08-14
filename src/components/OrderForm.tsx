@@ -1,6 +1,7 @@
 // src/components/OrderForm.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Minus, Trash2, Download, Mail } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { supabase } from '../services/supabase';
 import { PDFService } from './PDF';
 import { createOrderWithItems } from '../services/order';
@@ -115,21 +116,21 @@ export default function OrderForm() {
 
   const handleSave = async (emailAfter: boolean) => {
     if (!selectedClientId) {
-      alert('Please choose a client');
+      toast.error('Please choose a client');
       return;
     }
     if (orderItems.length === 0) {
-      alert('Please add at least one product');
+      toast.error('Please add at least one product');
       return;
     }
     // If any free items present, require a free reason
     const hasFree = orderItems.some(i => i.is_free);
     if (hasFree && !freeReason.trim()) {
-      alert('Please add a reason for free stock');
+      toast.error('Please add a reason for free stock');
       return;
     }
     if (discountPct > 0 && !discountReason.trim()) {
-      alert('Please select/enter a discount reason');
+      toast.error('Please select/enter a discount reason');
       return;
     }
 
@@ -155,7 +156,7 @@ export default function OrderForm() {
 
       if (error || !orderId) {
         console.error(error);
-        alert(error?.message ?? 'Failed to create order');
+        toast.error(error?.message ?? 'Failed to create order');
         setSaving(false);
         return;
       }
@@ -222,10 +223,10 @@ export default function OrderForm() {
       setDiscountReason('');
       setFreeReason('');
       setOrderNotes('');
-      alert('Order created successfully!');
+      toast('Order created successfully!');
     } catch (e) {
       console.error(e);
-      alert('Failed to create order. Please try again.');
+      toast.error('Failed to create order. Please try again.');
     } finally {
       setSaving(false);
     }
