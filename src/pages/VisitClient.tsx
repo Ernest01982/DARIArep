@@ -3,14 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   User, 
   Clock, 
-  Package, 
-  ShoppingCart, 
-  FileText, 
+  Package,
+  ShoppingCart,
+  FileText,
   Calendar,
   Plus,
   Eye,
-  Download,
-  Mail,
   X,
   Check,
   AlertCircle
@@ -18,7 +16,7 @@ import {
 import toast from 'react-hot-toast';
 import { withOfflineFallback, isNetworkOnline } from '../services/sync';
 import { supabase } from '../services/supabase';
-import { offlineStorage, enqueueMutation } from '../services/offline';
+import { offlineStorage, enqueueMutation, ActiveVisit } from '../services/offline';
 import { currencyZAR, formatDate, formatDateTime } from '../utils/format';
 import { REP_ID } from '../config';
 import { v4 as uuidv4 } from 'uuid';
@@ -65,16 +63,9 @@ interface Order {
   total_amount?: number;
 }
 
-interface OrderItem {
-  id: string;
-  product_id: string;
-  quantity: number;
-  price: number;
-}
-
 interface VisitClientData {
   client: Client | null;
-  activeVisit: any;
+  activeVisit: ActiveVisit | null;
   previousVisits: Visit[];
   clientProducts: ClientProduct[];
   availableProducts: Product[];
@@ -111,7 +102,7 @@ export function VisitClient() {
     date: '',
     time: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [isEndingVisit, setIsEndingVisit] = useState(false);
   const [isDelisting, setIsDelisting] = useState(false);
 
@@ -386,8 +377,8 @@ export function VisitClient() {
         rep_id: REP_ID,
         title: followUpForm.title,
         description: followUpForm.description,
-        start_date: followUpForm.date,
-        end_date: followUpForm.date,
+        start_date: startDate,
+        end_date: endDate,
         status: 'assigned',
         created_at: new Date().toISOString()
       };
@@ -414,7 +405,7 @@ export function VisitClient() {
     }
   };
 
-  const handleOrderSaved = (orderId: string) => {
+  const handleOrderSaved = () => {
     toast.success('Order created successfully!');
     setShowOrderForm(false);
     // Optionally refresh data or update UI
