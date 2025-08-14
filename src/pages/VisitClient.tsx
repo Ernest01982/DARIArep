@@ -421,7 +421,10 @@ export function VisitClient() {
   };
 
   const handleEndVisit = async () => {
-    if (!visitId) return;
+    if (!visitId || !clientId) {
+      toast.error('Missing visit or client information');
+      return;
+    }
 
     setIsEndingVisit(true);
     try {
@@ -580,7 +583,7 @@ export function VisitClient() {
         </div>
         <button
           onClick={handleEndVisit}
-          disabled={!data.activeVisit || isEndingVisit}
+          disabled={!data.activeVisit || isEndingVisit || !clientId}
           className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           {isEndingVisit ? 'Ending Visit...' : 'End Visit'}
