@@ -7,6 +7,12 @@ import { PDFService } from './PDF';
 import { createOrderWithItems } from '../services/order';
 import { useAuth } from '../contexts/AuthContext';
 
+interface OrderFormProps {
+  clientId?: string;
+  visitId?: string;
+  onSaved?: (orderId: string) => void;
+}
+
 type Client = {
   id: string;
   name: string;
@@ -34,11 +40,11 @@ type OrderRow = {
 
 const currency = (n: number) => `R ${n.toFixed(2)}`;
 
-export function OrderForm() {
+export function OrderForm({ clientId, visitId, onSaved }: OrderFormProps) {
   const { currentRep } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState(clientId ?? '');
   const [search, setSearch] = useState('');
   const [orderItems, setOrderItems] = useState<OrderRow[]>([]);
   const [discountPct, setDiscountPct] = useState(0);
@@ -51,14 +57,22 @@ export function OrderForm() {
   useEffect(() => {
     (async () => {
       const [{ data: c }, { data: p }] = await Promise.all([
-        supabase.from('clients').select('id,name,location,contact_name,contact_email').order('name'),
+        supabase
+          .from('clients')
+          .select('id,name,location,contact_name,contact_email')
+          .order('name'),
         supabase.from('products').select('id,name,category,sku,price_trade').order('name')
       ]);
       setClients(c ?? []);
       setProducts(p ?? []);
+      if (clientId) {
+        setSelectedClientId(clientId);
+        const selected = c?.find(x => x.id === clientId);
+        if (selected) setSearch(selected.name);
+      }
       setLoading(false);
     })();
-  }, []);
+  }, [clientId]);
 
   const filteredClients = useMemo(
     () =>
@@ -146,6 +160,7 @@ export function OrderForm() {
       const { orderId, error } = await createOrderWithItems({
         clientId: selectedClientId,
         repId: currentRep?.id as string,
+        visitId,
         isFree: hasFree && orderItems.every(i => i.is_free), // true only if ALL are free
         discountPercent: discountPct,
         discountReason: discountPct > 0 ? discountReason : null,
@@ -216,8 +231,11 @@ export function OrderForm() {
       }
 
       // Reset form
-      setSelectedClientId('');
-      setSearch('');
+      onSaved?.(orderId);
+
+      setSelectedClientId(clientId ?? '');
+      const clientName = selectedClient?.name ?? '';
+      setSearch(clientId ? clientName : '');
       setOrderItems([]);
       setDiscountPct(0);
       setDiscountReason('');
@@ -239,31 +257,33 @@ export function OrderForm() {
       <h2 className="text-xl font-semibold">Create Order</h2>
 
       {/* Client search/select */}
-      <div className="bg-white border rounded-lg p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Client</label>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search client by name or region…"
-          className="w-full border rounded-md px-3 py-2"
-        />
-        <div className="max-h-48 overflow-y-auto mt-2 border rounded">
-          {filteredClients.map(c => (
-            <div
-              key={c.id}
-              onClick={() => {
-                setSelectedClientId(c.id);
-                setSearch(`${c.name}`);
-              }}
-              className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
-                selectedClientId === c.id ? 'bg-blue-100' : ''
-              }`}
-            >
-              {c.name} {c.location ? `– ${c.location}` : ''}
-            </div>
-          ))}
+      {!clientId && (
+        <div className="bg-white border rounded-lg p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Client</label>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search client by name or region…"
+            className="w-full border rounded-md px-3 py-2"
+          />
+          <div className="max-h-48 overflow-y-auto mt-2 border rounded">
+            {filteredClients.map(c => (
+              <div
+                key={c.id}
+                onClick={() => {
+                  setSelectedClientId(c.id);
+                  setSearch(`${c.name}`);
+                }}
+                className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
+                  selectedClientId === c.id ? 'bg-blue-100' : ''
+                }`}
+              >
+                {c.name} {c.location ? `– ${c.location}` : ''}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Add products */}
       <div className="bg-white border rounded-lg p-4">
