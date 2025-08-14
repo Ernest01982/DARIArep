@@ -461,7 +461,7 @@ export function VisitClient() {
 
       await offlineStorage.setActiveVisit(null);
       toast.success('Visit ended successfully');
-      navigate('/');
+      navigate('/visit');
     } catch (error) {
       console.error('Failed to end visit:', error);
       toast.error('Failed to end visit');
