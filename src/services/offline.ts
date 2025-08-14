@@ -154,7 +154,7 @@ export async function getData<T>(key: keyof typeof STORAGE_KEYS): Promise<T[]> {
   return data || [];
 }
 
-export async function setActiveVisit(visit: ActiveVisit | null): Promise<void> {
+export async function storageSetActiveVisit(visit: ActiveVisit | null): Promise<void> {
   if (visit) {
     await localforage.setItem(STORAGE_KEYS.active_visit, visit);
   } else {
@@ -162,7 +162,7 @@ export async function setActiveVisit(visit: ActiveVisit | null): Promise<void> {
   }
 }
 
-export async function getActiveVisit(): Promise<ActiveVisit | null> {
+export async function storageGetActiveVisit(): Promise<ActiveVisit | null> {
   return await localforage.getItem<ActiveVisit>(STORAGE_KEYS.active_visit);
 }
 
@@ -242,10 +242,10 @@ export const offlineStorage = {
 
   // Active Visit
   async setActiveVisit(visit: ActiveVisit | null): Promise<void> {
-    await setActiveVisit(visit);
+    await storageSetActiveVisit(visit);
   },
   async getActiveVisit(): Promise<ActiveVisit | null> {
-    return await getActiveVisit();
+    return await storageGetActiveVisit();
   }
 };
 
