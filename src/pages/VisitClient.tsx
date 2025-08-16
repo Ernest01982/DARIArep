@@ -1,28 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  User, 
-  Clock, 
-  Package, 
-  ShoppingCart, 
-  FileText, 
-  Calendar,
-  Plus,
-  Eye,
-  Download,
-  Mail,
-  X,
-  Check,
-  AlertCircle
-} from 'lucide-react';
+import { User, Clock, Eye, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { withOfflineFallback, isNetworkOnline } from '../services/sync';
 import { supabase } from '../services/supabase';
 import { offlineStorage, enqueueMutation, ActiveVisit } from '../services/offline';
-import { currencyZAR, formatDate, formatDateTime } from '../utils/format';
-import { REP_ID } from '../config';
-import { v4 as uuidv4 } from 'uuid';
-import { OrderForm } from '../components/OrderForm';
+import { formatDate, formatDateTime } from '../utils/format';
 
 // --- Interfaces --- //
 
@@ -61,19 +44,6 @@ interface Product {
   price: number;
 }
 
-interface Order {
-  id: string;
-  order_date: string;
-  total_amount?: number;
-}
-
-interface OrderItem {
-  id: string;
-  product_id: string;
-  quantity: number;
-  price: number;
-}
-
 interface VisitClientData {
   client: Client | null;
   activeVisit: ActiveVisit | null;
@@ -104,22 +74,7 @@ export function VisitClient() {
     error: false
   });
 
-  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
-  const [visitOrders, setVisitOrders] = useState<Order[]>([]);
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [showOrderForm, setShowOrderForm] = useState(false);
-  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
-  const [visitNotes, setVisitNotes] = useState('');
-  const [followUpForm, setFollowUpForm] = useState({
-    title: '',
-    description: '',
-    date: '',
-    time: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
   const [isEndingVisit, setIsEndingVisit] = useState(false);
-  const [isDelisting, setIsDelisting] = useState(false);
 
   // --- Data Loading Effect --- //
   
@@ -207,9 +162,6 @@ export function VisitClient() {
             error: !client
           });
           
-          if (activeVisit) {
-            setVisitNotes(activeVisit.notes || '');
-          }
         }
       } catch (error) {
         console.error('Failed to load visit data:', error);
@@ -230,102 +182,14 @@ export function VisitClient() {
   // --- Event Handlers & Functions --- //
 
   const handleVisitClick = async (visit: Visit) => {
-    setSelectedVisit(visit);
     try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('visit_id', visit.id);
-        if (error) throw error;
-        setVisitOrders(data || []);
+      await supabase
+        .from('orders')
+        .select('*')
+        .eq('visit_id', visit.id);
     } catch (error) {
-        console.error('Failed to fetch orders for visit:', error);
-        setVisitOrders([]);
+      console.error('Failed to fetch orders for visit:', error);
     }
-  };
-
-  const handleUpdateNotes = async () => {
-    if (!visitId) return;
-
-    try {
-      const payload = { notes: visitNotes };
-
-      if (isNetworkOnline()) {
-        const { error } = await supabase
-          .from('visits')
-          .update(payload)
-          .eq('id', visitId);
-        if (error) throw error;
-      } else {
-        await enqueueMutation({
-          table: 'visits',
-          operation: 'update',
-          payload: payload,
-          key: visitId
-        });
-      }
-
-      const activeVisit = await offlineStorage.getItem(`active_visit_${visitId}`);
-      if (activeVisit) {
-        activeVisit.notes = visitNotes;
-        await offlineStorage.setItem(`active_visit_${visitId}`, activeVisit);
-      }
-
-      toast.success('Notes updated');
-    } catch (error) {
-      console.error('Failed to update notes:', error);
-      toast.error('Failed to update notes');
-    }
-  };
-
-  const handleAddFollowUp = async () => {
-    if (!followUpForm.title || !followUpForm.date || !followUpForm.time) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const startDate = `${followUpForm.date}T${followUpForm.time}:00`;
-      const endDate = new Date(new Date(startDate).getTime() + 60 * 60 * 1000).toISOString();
-
-      const task = {
-        id: uuidv4(),
-        rep_id: REP_ID,
-        title: followUpForm.title,
-        description: followUpForm.description,
-        start_date: startDate,
-        end_date: endDate,
-        status: 'assigned',
-        created_at: new Date().toISOString()
-      };
-
-      if (isNetworkOnline()) {
-        const { error } = await supabase.from('rep_tasks').insert(task);
-        if (error) throw error;
-      } else {
-        await enqueueMutation({
-          table: 'rep_tasks',
-          operation: 'insert',
-          payload: task
-        });
-      }
-
-      toast.success('Follow-up task created');
-      setShowFollowUpModal(false);
-      setFollowUpForm({ title: '', description: '', date: '', time: '' });
-    } catch (error) {
-      console.error('Failed to create follow-up:', error);
-      toast.error('Failed to create follow-up');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOrderSaved = () => {
-    toast.success('Order created successfully!');
-    setShowOrderForm(false);
-    // Optionally refresh data or update UI
   };
 
   const handleEndVisit = async () => {
